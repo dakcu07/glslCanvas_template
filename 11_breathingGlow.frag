@@ -1,5 +1,5 @@
-// Author:0816014 唐子勛
-// Title:BreathingGlow
+// Author:CMH
+// Title:LunarEclipse
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -26,12 +26,17 @@ float sdMoon(vec2 p, float d, float ra, float rb )
 float rand(vec2 n) { 
 	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
 }
-
+float time_re(float t){
+    int b = int(t);
+    float f = float(b);
+    return t-f;
+}
 float noise(vec2 p){
 	vec2 ip = floor(p);
 	vec2 u = fract(p);
 	u = u*u*(3.0-2.0*u);
-	
+	//(u_time%
+    //
 	float res = mix(
 		mix(rand(ip),rand(ip+vec2(1.0,0.0)),u.x),
 		mix(rand(ip+vec2(0.0,1.0)),rand(ip+vec2(1.0,1.0)),u.x),u.y);
@@ -50,10 +55,21 @@ float fbm(vec2 x) {
 	}
 	return v;
 }
+float mouseEffect(vec2 uv, vec2 mouse, float size)
+{
+    float dist=length(uv-mouse);
+    return 1.2-smoothstep(size*1.9, size, dist);  //size
+    //return pow(dist, 0.5);
+}
 void main() {
     vec2 uv = gl_FragCoord.xy/u_resolution.xy;
     uv.x *= u_resolution.x/u_resolution.y;
     uv= uv*2.0-1.0;
+    
+    vec2 mouse = u_mouse/u_resolution.xy;
+    mouse.x *= u_resolution.x/u_resolution.y;
+    mouse = mouse*2.0-1.0;
+    
     
     float pi=3.14159;
     float theta = 2.0*pi*u_time/8.0;
@@ -61,27 +77,26 @@ void main() {
     float dir = dot(point, uv)+0.55;
     
     float fog = fbm(0.4*uv+vec2(-0.1*u_time, -0.02*u_time))*0.6+0.1;
-
+	float interact = 1. - mouseEffect(uv, mouse, 0.35);//
     
 	float breathing=(exp(sin(u_time/3.0*pi)) - 0.36787944)*0.42545906412; 
     //定義圓環
     float dist = length(uv);
     float circle_dist = abs(dist-0.512);								//光環大小
-    
+    //time_re(u_time)
     vec2 uv_flip=vec2(uv.x, -uv.y);
     float weight = smoothstep(-2.100, 0.000, uv.y); //noise position
     float m_noise = noise(uv_flip*30.000)*-0.188*weight;
-    float moon_dist = abs(sdMoon(uv*2.372, -0.096-breathing*0.168, 1.315, 1.148-abs(breathing*0.052))+m_noise);
+    float moon_dist = abs(sdMoon(uv*2.372-0.3*mouse, mouse.x, 1.315, 1.420-abs(-mouse.x))+m_noise*+abs(mouse.x)*1.5);
     //動態呼吸
     //float breathing=sin(u_time*2.0*pi/4.0)*0.5+0.5;						//option1
      			//option2 正確
     //float strength =(0.2*breathing*dir+0.180);			//[0.2~0.3]			//光暈強度加上動態時間營造呼吸感
-    float strength =(0.2*breathing+0.300);			//[0.2~0.3]			//光暈強度加上動態時間營造呼吸感
+    float strength =(0.2*breathing+0.1+abs(mouse.x)*0.3);			//[0.2~0.3]			//光暈強度加上動態時間營造呼吸感
     float thickness=(0.060);			//[0.1~0.2]			//光環厚度 營造呼吸感
     float glow_circle = glow(moon_dist, strength, thickness);
-    gl_FragColor = vec4(vec3(glow_circle+fog)*vec3(1.000,0.678,0.872),1.0);
+    gl_FragColor = vec4(vec3(glow_circle+fog)*vec3(1.000,0.678,0.872),0.7+0.3*abs(mouse.x));
 }
-
 
 
 
